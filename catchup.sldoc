@@ -1,0 +1,186 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html;
+      charset=windows-1252">
+    <title>CATCHUP - Demo of Catchup Rate-setting Algorithm</title>
+  </head>
+  <body>
+    <h1><a class="mozTocH1" name="mozTocId336658"></a>CATCHUP Package
+      Description</h1>
+    <p>This is a <a href="http://wiki.geeky-boy.com/semlit/">semi-literate
+
+
+
+
+
+
+
+
+
+
+        document</a> for the program <tt>catchup.c</tt>.&nbsp; The <tt>catchup.c</tt>
+      program illustrates the use of the "catchup" rate-setting
+      algorithm.&nbsp; It is intended to teach programmers some of the
+      techniques, and potentially serve as a starting-point for their
+      own programs.&nbsp; Semi-literate documents like this are intended
+      to explain the internals of a program, which is different than
+      user documentation.<br>
+      <br>
+      =semlit,include, copyright.sldoc=<br>
+    </p>
+    <ol id="mozToc">
+      <!--mozToc h1 1 h2 2 h3 3 h4 4 h5 5 h6 6-->
+      <li><a href="#mozTocId336658">CATCHUP Package Description</a>
+        <ol>
+          <li><a href="#mozTocId638880">Introduction</a></li>
+          <li><a href="#mozTocId41959">Program explanation: catchup.c</a>
+            <ol>
+              <li><a href="#mozTocId903022">main()</a></li>
+              <li><a href="#mozTocId173444">gtod64()</a></li>
+              <li><a href="#mozTocId942055">F() and E0()</a></li>
+            </ol>
+          </li>
+        </ol>
+      </li>
+    </ol>
+    <h2><a class="mozTocH2" name="mozTocId638880"></a>Introduction</h2>
+    I have seen many test programs written to generate message
+    traffic.&nbsp; They often are intended to allow the user to set a
+    desired message rate, and they do their best to send messages at
+    that rate, or at least in such a way that averages to that rate over
+    time, usually a high rate (&gt; 1000 messages / second).&nbsp; The
+    most common algorithm I've seen is to sleep for a short time, often
+    1 millisecond, and then send in a tight loop 1/1000 of the messages
+    required in a second.&nbsp; The result is a burst of messages packed
+    at the start of each millisecond followed by idle for the remainder
+    of that millisecond.<br>
+    <br>
+    One problem with this common algorithm is that different systems and
+    OSes have different minimum sleep times.&nbsp; Windows often has a
+    16 millisecond minimum sleep time, Solaris often has a 10
+    millisecond minimum, and Linux often has a 1 millisecond
+    minimum.&nbsp; Thus, the algorithm code must either be
+    system-specific, or be configurable.&nbsp; Another problem with the
+    common algorithm is that it often does not take into account the
+    elapsed time required to send a burst of messages, making the
+    resulting average rate inaccurate.&nbsp; Also, variations in system
+    load can result in transient short delays in execution,&nbsp; making
+    the average rate even more inaccurate.&nbsp; Also, some test
+    scenarios call for traffic to be evently-spaced, not bursty.&nbsp;
+    Finally, if the user requests a rate which is higher than can be
+    achieved even by tight looping, most algorithms will silently be
+    inaccurate.<br>
+    <br>
+    The catchup algorithm is self-correcting across varying systems and
+    load conditions, and easily runs in a busy-looping mode which
+    evenly-spaces messages even at very high rates.<br>
+    <br>
+    All code is written in C and uses Unix-style APIs. The reader is
+    assumed to be proficient at C and have a moderate familiarity
+    with&nbsp; Unix.<br>
+    <p>There is one program source file:<br>
+    </p>
+    <ul>
+      <li><b><span style="font-family: monospace;">=semlit,srcfile,catchup_c.slsrc,catchup.c=</span></b>
+        - (right-click and save) main program.</li>
+    </ul>
+    <p> </p>
+    <h2><a class="mozTocH2" name="mozTocId41959"></a>Program
+      explanation: <tt>catchup.c</tt></h2>
+    <h3><a class="mozTocH3" name="mozTocId903022"></a>main()<br>
+    </h3>
+    <p>Let's start with the usage string: =semlit,insert,usage= The <tt>send_rate</tt>
+      is in messages per second.&nbsp; The optional <tt>sleep_usec</tt>
+      is in microseconds and defaults to zero, which means not to sleep
+      (busy looping).&nbsp; For example:<br>
+      <tt>&nbsp;&nbsp;&nbsp; catchup 1000 16700</tt><br>
+      This usage sends at 1000 messages/sec, with a 16.7 millisecond
+      sleep, which is a common minimum sleep time on Windows.&nbsp; This
+      command will nominally send a burst of 16 or 17 messages, followed
+      by a 16.7 millisecond sleep.&nbsp; For this test program, the act
+      of "sending a message" is simply printing a period to standard
+      out.&nbsp; The program has no exit criteria; to stop the program,
+      kill the process (normally with control-C).<br>
+    </p>
+    <p>Now let's look at the code.&nbsp; The main entry point:
+      =semlit,insert,main= Nothing too surprising here.&nbsp; The
+      variable <tt>e</tt> is used for Unix calls which return an error
+      status (where zero means success).<br>
+    </p>
+    <p>The next few lines parse command-line parameters:
+      =semlit,insert,parsing= If this were a user-friendly program, it
+      would use standard options, which would probably involve looping
+      on "<tt>getopts()</tt>" and a switch statement.&nbsp; But this
+      program is intended to demonstrate the catchup algorithm, not show
+      how to parse a command line in a user-friendly way.&nbsp; So the
+      above code is simple ... and <a
+href="http://blog.geeky-boy.com/2014/04/strtoul-preferred-over-atoi.html">inadvised</a>.<br>
+    </p>
+    <p>The final bit of startup is to take a timestamp for the start of
+      the program, and initialize the number of messages sent so far:
+      =semlit,insert,init= The <tt>gtod64()</tt> function is local and
+      is presented later.&nbsp; It returns a 64-bit number of
+      microseconds since the Unix epoch (Jan 1, 1970).<br>
+    </p>
+    <p>Now for the main loop: =semlit,insert,loop= At the top of the
+      loop, we calculate the total number of microseconds we've been
+      running since the start, and then, using the desired message rate,
+      calculate the total number of messages which <i>should</i> have
+      been sent up to this point.&nbsp; Note that since <tt>tot_num_sent</tt>
+      and <tt>should_have_sent</tt> are both <tt>long</tt>s, if you
+      let the program run long enough, those variables will
+      overflow.&nbsp; I neither know nor care what happens then.&nbsp;
+      Feel free to make them into <tt>long long</tt>s if you want long
+      running times.<br>
+    </p>
+    <p>=semlit,insert,burst= <tt>burst</tt> is just the number of
+      messages we are behind where we should be.&nbsp; I do a quick
+      check to see if we have fallen more than 1 second behind; if so
+      then I consider it a fatal error and exit.&nbsp; The <tt>F()</tt>
+      macro is presented later.&nbsp; I arbitrarily chose 1 second's
+      worth of messages as the threshold.&nbsp; Be sure to pick a number
+      which is larger than the number of messages that should be sent in
+      one sleep period.<br>
+    </p>
+    <p>Now comes the catchup part: =semlit,insert,catchup= Send the
+      burst of messages, and update the count.<br>
+    </p>
+    <p>Now that we should be all caught up, it's time to sleep and
+      finish the main loop: =semlit,insert,sleep= The <tt>E0()</tt>
+      macro checks the return status for an error; if so, it prints a
+      message and exits.&nbsp; The error handling macros are presented
+      later.<br>
+    </p>
+    <h3><a class="mozTocH3" name="mozTocId173444"></a>gtod64()</h3>
+    <p>The <tt>gtod64()</tt> function is simply a helper to make <tt>gettimeofday()</tt>
+      easier to use by treating errors as fatal and by returning a
+      single 64-bit number of microseconds since the epoch:
+      =semlit,insert,gtod64= The <tt>E0()</tt> macro checks the return
+      status for an error; if so, it prints a message and exits.&nbsp;
+      The error handling macros are presented later.<br>
+    </p>
+    <h3><a class="mozTocH3" name="mozTocId942055"></a>F() and E0()</h3>
+    <p>Error handling code is important in terms of detecting and
+      diagnosing problems, but is also costly in terms of obscuring the
+      intent of the algorithm being implemented.&nbsp; Since this
+      program is intended only to demonstrate the catchup algorithm, I
+      didn't want any of those algorithms to be made harder to read due
+      to thorough error handling, so I took a short cut:
+      =semlit,insert,error= The <tt>F()</tt> macro prints a message to
+      standard error along with the source file name and line number,
+      and exits the program with a non-success status.&nbsp; The <tt>E0()</tt>
+      macro checks the supplied status for error (non-zero), and passes
+      a textual error message (<tt>strerror_r()</tt>) to <tt>F()</tt>.<br>
+    </p>
+    <p>These are written as macros so that the <tt>__FILE__</tt> and <tt>__LINE__</tt>
+      usages in <tt>F()</tt> correspond to the location of the <i>invocations</i>
+      of the macros, not where the macros are defined.<br>
+    </p>
+    <p>I would not expect a production program to have such user-hostile
+      error reporting (you need the source file to know what failed),
+      but for the purposes of a demonstration program, it's adequate.<br>
+      <br>
+    </p>
+  </body>
+</html>

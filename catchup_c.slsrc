@@ -1,0 +1,79 @@
+/* catchup.c - program to demonstrate the "catchup" rate-setting algorithm.  See ??? */
+
+#include <stdlib.h>
+#include <unistd.h>
+#include <string.h>
+#include <stdio.h>
+#include <sys/errno.h>
+#include <sys/time.h>
+
+/*=semlit,block,usage=*/
+char usage[] = "Usage: catchup send_rate [sleep_usec]";
+/*=semlit,endblock,usage=*/
+
+/*=semlit,block,error=*/
+/* Simple fatal error macro */
+#define F(m) do { fprintf(stderr, "Fatal error [%s,%d]: '%s'\n", __FILE__, __LINE__, m);  exit(1);  } while (0)
+/* If non-zero status, fatal error with errno string */
+#define E0(s) do { char errbuf[99];  if (s != 0) {  strerror_r(errno, errbuf, 99);  F(errbuf);  }  } while (0)
+/*=semlit,endblock,error=*/
+
+
+/*=semlit,block,gtod64=*/
+long long gtod64()
+{
+  int e;  /* error handling */
+  struct timeval cur_tv;
+
+  e=gettimeofday(&cur_tv, NULL);  E0(e);
+
+  return (long long)cur_tv.tv_sec * 1000000ll + (long long)cur_tv.tv_usec;
+}  /* gtod64 */
+/*=semlit,endblock,gtod64=*/
+
+
+/*=semlit,block,main=*/
+int main(int argc, char **argv)
+{
+  int e;  /* error handling */
+/*=semlit,endblock,main=*/
+
+/*=semlit,block,parsing=*/
+  /* Command-line parsing */
+  if (argc == 1) { printf("%s\n", usage); exit(0); }
+  long send_rate = 0;  if (argc >= 2) send_rate = atoi(argv[1]);
+  long sleep_usec = 0;  if (argc >= 3) sleep_usec = atoi(argv[2]);
+/*=semlit,endblock,parsing=*/
+
+/*=semlit,block,init=*/
+  long long start_usec = gtod64();
+  long tot_num_sent = 0;
+/*=semlit,endblock,init=*/
+
+/*=semlit,block,loop=*/
+  for (;;) {
+    long long usec_running = gtod64() - start_usec;
+	long should_have_sent = (long)((usec_running * (long long)send_rate) / 1000000ll);
+/*=semlit,endblock,loop=*/
+
+/*=semlit,block,burst=*/
+    /* how far behind are we? */
+    long burst = should_have_sent - tot_num_sent;  if (burst > send_rate) F("More than 1 second behind");
+/*=semlit,endblock,burst=*/
+
+/*=semlit,block,catchup=*/
+    /* send a burst of messages to catch up. */
+    int i;
+    for (i = 0; i < burst; i++) {
+      printf(".");  fflush(stdout);  /* send message */
+    }  /* for i */
+    tot_num_sent += burst;
+/*=semlit,endblock,catchup=*/
+
+/*=semlit,block,sleep=*/
+    if (sleep_usec > 0) {
+      e=usleep(sleep_usec);  E0(e);
+    }
+  }  /* for ;; */
+/*=semlit,endblock,sleep=*/
+}  /* main */
