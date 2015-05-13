@@ -41,7 +41,7 @@ licensed "public domain" style under:</p>
       this work. This work is published from: <span
         property="vcard:Country" datatype="dct:ISO3166" content="US"
         about="geeky-boy.com"> United States</span>.&nbsp; The project
-      home is <a href="http://geeky-boy.com/seldoc">http://geeky-boy.com/seldoc</a>.&nbsp;
+      home is <a href="https://github.com/fordsfords/catchup/tree/gh-pages">https://github.com/fordsfords/catchup/tree/gh-pages</a>.&nbsp;
       To contact me, Steve Ford, project owner, you can find my email
       address at <a href="http://geeky-boy.com">http://geeky-boy.com</a>.&nbsp;
       Can't see it?&nbsp; Keep looking.</p>
@@ -105,7 +105,7 @@ licensed "public domain" style under:</p>
     <p>There is one program source file:<br>
     </p>
     <ul>
-      <li><b><span style="font-family: monospace;"><a href="catchup.c">catchup.c</a></span></b>
+      <li><b><span style="font-family: monospace;"><a href="catchup_c.txt">catchup_c.txt</a></span></b>
         - (right-click and save) main program.</li>
     </ul>
     <p> </p>
@@ -115,7 +115,7 @@ licensed "public domain" style under:</p>
     </h3>
     <p>Let's start with the usage string: <a name="usage_ref_1" id="usage_ref_1"></a>
 <small><pre>
-<a href="catchup_c.slsrc.html#usage" target="src">00010</a>  char usage[] = "Usage: catchup send_rate [sleep_usec]";
+<a href="catchup_c.slsrc.html#usage" target="src">00019</a>  char usage[] = "Usage: catchup send_rate [sleep_usec]";
 </pre><!-- endblock usage_ref_1 --></small>
 
  The <tt>send_rate</tt>
@@ -134,9 +134,9 @@ licensed "public domain" style under:</p>
     <p>Now let's look at the code.&nbsp; The main entry point:
       <a name="main_ref_1" id="main_ref_1"></a>
 <small><pre>
-<a href="catchup_c.slsrc.html#main" target="src">00029</a>  int main(int argc, char **argv)
-<a href="catchup_c.slsrc.html#main" target="src">00030</a>  {
-<a href="catchup_c.slsrc.html#main" target="src">00031</a>    int e;  /* error handling */
+<a href="catchup_c.slsrc.html#main" target="src">00038</a>  int main(int argc, char **argv)
+<a href="catchup_c.slsrc.html#main" target="src">00039</a>  {
+<a href="catchup_c.slsrc.html#main" target="src">00040</a>    int e;  /* error handling */
 </pre><!-- endblock main_ref_1 --></small>
 
  Nothing too surprising here.&nbsp; The
@@ -146,10 +146,10 @@ licensed "public domain" style under:</p>
     <p>The next few lines parse command-line parameters:
       <a name="parsing_ref_1" id="parsing_ref_1"></a>
 <small><pre>
-<a href="catchup_c.slsrc.html#parsing" target="src">00033</a>    /* Command-line parsing */
-<a href="catchup_c.slsrc.html#parsing" target="src">00034</a>    if (argc == 1) { printf("%s\n", usage); exit(0); }
-<a href="catchup_c.slsrc.html#parsing" target="src">00035</a>    long send_rate = 0;  if (argc &gt;= 2) send_rate = atoi(argv[1]);
-<a href="catchup_c.slsrc.html#parsing" target="src">00036</a>    long sleep_usec = 0;  if (argc &gt;= 3) sleep_usec = atoi(argv[2]);
+<a href="catchup_c.slsrc.html#parsing" target="src">00042</a>    /* Command-line parsing */
+<a href="catchup_c.slsrc.html#parsing" target="src">00043</a>    if (argc == 1) { printf("%s\n", usage); exit(0); }
+<a href="catchup_c.slsrc.html#parsing" target="src">00044</a>    long send_rate = 0;  if (argc &gt;= 2) send_rate = atoi(argv[1]);
+<a href="catchup_c.slsrc.html#parsing" target="src">00045</a>    long sleep_usec = 0;  if (argc &gt;= 3) sleep_usec = atoi(argv[2]);
 </pre><!-- endblock parsing_ref_1 --></small>
 
  If this were a user-friendly program, it
@@ -164,8 +164,8 @@ href="http://blog.geeky-boy.com/2014/04/strtoul-preferred-over-atoi.html">inadvi
       the program, and initialize the number of messages sent so far:
       <a name="init_ref_1" id="init_ref_1"></a>
 <small><pre>
-<a href="catchup_c.slsrc.html#init" target="src">00038</a>    long long start_usec = gtod64();
-<a href="catchup_c.slsrc.html#init" target="src">00039</a>    long tot_num_sent = 0;
+<a href="catchup_c.slsrc.html#init" target="src">00047</a>    long long start_usec = gtod64();
+<a href="catchup_c.slsrc.html#init" target="src">00048</a>    long tot_num_sent = 0;
 </pre><!-- endblock init_ref_1 --></small>
 
  The <tt>gtod64()</tt> function is local and
@@ -174,9 +174,9 @@ href="http://blog.geeky-boy.com/2014/04/strtoul-preferred-over-atoi.html">inadvi
     </p>
     <p>Now for the main loop: <a name="loop_ref_1" id="loop_ref_1"></a>
 <small><pre>
-<a href="catchup_c.slsrc.html#loop" target="src">00041</a>    for (;;) {
-<a href="catchup_c.slsrc.html#loop" target="src">00042</a>      long long usec_running = gtod64() - start_usec;
-<a href="catchup_c.slsrc.html#loop" target="src">00043</a>      long should_have_sent = (long)((usec_running * (long long)send_rate) / 1000000ll);
+<a href="catchup_c.slsrc.html#loop" target="src">00050</a>    for (;;) {
+<a href="catchup_c.slsrc.html#loop" target="src">00051</a>      long long usec_running = gtod64() - start_usec;
+<a href="catchup_c.slsrc.html#loop" target="src">00052</a>      long should_have_sent = (long)((usec_running * (long long)send_rate) / 1000000ll);
 </pre><!-- endblock loop_ref_1 --></small>
 
  At the top of the
@@ -192,8 +192,8 @@ href="http://blog.geeky-boy.com/2014/04/strtoul-preferred-over-atoi.html">inadvi
     </p>
     <p><a name="burst_ref_1" id="burst_ref_1"></a>
 <small><pre>
-<a href="catchup_c.slsrc.html#burst" target="src">00045</a>      /* how far behind are we? */
-<a href="catchup_c.slsrc.html#burst" target="src">00046</a>      long burst = should_have_sent - tot_num_sent;  if (burst &gt; send_rate) F("More than 1 second behind");
+<a href="catchup_c.slsrc.html#burst" target="src">00054</a>      /* how far behind are we? */
+<a href="catchup_c.slsrc.html#burst" target="src">00055</a>      long burst = should_have_sent - tot_num_sent;  if (burst &gt; send_rate) F("More than 1 second behind");
 </pre><!-- endblock burst_ref_1 --></small>
 
  <tt>burst</tt> is just the number of
@@ -207,12 +207,12 @@ href="http://blog.geeky-boy.com/2014/04/strtoul-preferred-over-atoi.html">inadvi
     </p>
     <p>Now comes the catchup part: <a name="catchup_ref_1" id="catchup_ref_1"></a>
 <small><pre>
-<a href="catchup_c.slsrc.html#catchup" target="src">00048</a>      /* send a burst of messages to catch up. */
-<a href="catchup_c.slsrc.html#catchup" target="src">00049</a>      int i;
-<a href="catchup_c.slsrc.html#catchup" target="src">00050</a>      for (i = 0; i &lt; burst; i++) {
-<a href="catchup_c.slsrc.html#catchup" target="src">00051</a>        printf(".");  fflush(stdout);  /* send message */
-<a href="catchup_c.slsrc.html#catchup" target="src">00052</a>      }  /* for i */
-<a href="catchup_c.slsrc.html#catchup" target="src">00053</a>      tot_num_sent += burst;
+<a href="catchup_c.slsrc.html#catchup" target="src">00057</a>      /* send a burst of messages to catch up. */
+<a href="catchup_c.slsrc.html#catchup" target="src">00058</a>      int i;
+<a href="catchup_c.slsrc.html#catchup" target="src">00059</a>      for (i = 0; i &lt; burst; i++) {
+<a href="catchup_c.slsrc.html#catchup" target="src">00060</a>        printf(".");  fflush(stdout);  /* send message */
+<a href="catchup_c.slsrc.html#catchup" target="src">00061</a>      }  /* for i */
+<a href="catchup_c.slsrc.html#catchup" target="src">00062</a>      tot_num_sent += burst;
 </pre><!-- endblock catchup_ref_1 --></small>
 
  Send the
@@ -221,10 +221,10 @@ href="http://blog.geeky-boy.com/2014/04/strtoul-preferred-over-atoi.html">inadvi
     <p>Now that we should be all caught up, it's time to sleep and
       finish the main loop: <a name="sleep_ref_1" id="sleep_ref_1"></a>
 <small><pre>
-<a href="catchup_c.slsrc.html#sleep" target="src">00055</a>      if (sleep_usec &gt; 0) {
-<a href="catchup_c.slsrc.html#sleep" target="src">00056</a>        e=usleep(sleep_usec);  E0(e);
-<a href="catchup_c.slsrc.html#sleep" target="src">00057</a>      }
-<a href="catchup_c.slsrc.html#sleep" target="src">00058</a>    }  /* for ;; */
+<a href="catchup_c.slsrc.html#sleep" target="src">00064</a>      if (sleep_usec &gt; 0) {
+<a href="catchup_c.slsrc.html#sleep" target="src">00065</a>        e=usleep(sleep_usec);  E0(e);
+<a href="catchup_c.slsrc.html#sleep" target="src">00066</a>      }
+<a href="catchup_c.slsrc.html#sleep" target="src">00067</a>    }  /* for ;; */
 </pre><!-- endblock sleep_ref_1 --></small>
 
  The <tt>E0()</tt>
@@ -238,15 +238,15 @@ href="http://blog.geeky-boy.com/2014/04/strtoul-preferred-over-atoi.html">inadvi
       single 64-bit number of microseconds since the epoch:
       <a name="gtod64_ref_1" id="gtod64_ref_1"></a>
 <small><pre>
-<a href="catchup_c.slsrc.html#gtod64" target="src">00018</a>  long long gtod64()
-<a href="catchup_c.slsrc.html#gtod64" target="src">00019</a>  {
-<a href="catchup_c.slsrc.html#gtod64" target="src">00020</a>    int e;  /* error handling */
-<a href="catchup_c.slsrc.html#gtod64" target="src">00021</a>    struct timeval cur_tv;
-<a href="catchup_c.slsrc.html#gtod64" target="src">00022</a>  
-<a href="catchup_c.slsrc.html#gtod64" target="src">00023</a>    e=gettimeofday(&amp;cur_tv, NULL);  E0(e);
-<a href="catchup_c.slsrc.html#gtod64" target="src">00024</a>  
-<a href="catchup_c.slsrc.html#gtod64" target="src">00025</a>    return (long long)cur_tv.tv_sec * 1000000ll + (long long)cur_tv.tv_usec;
-<a href="catchup_c.slsrc.html#gtod64" target="src">00026</a>  }  /* gtod64 */
+<a href="catchup_c.slsrc.html#gtod64" target="src">00027</a>  long long gtod64()
+<a href="catchup_c.slsrc.html#gtod64" target="src">00028</a>  {
+<a href="catchup_c.slsrc.html#gtod64" target="src">00029</a>    int e;  /* error handling */
+<a href="catchup_c.slsrc.html#gtod64" target="src">00030</a>    struct timeval cur_tv;
+<a href="catchup_c.slsrc.html#gtod64" target="src">00031</a>  
+<a href="catchup_c.slsrc.html#gtod64" target="src">00032</a>    e=gettimeofday(&amp;cur_tv, NULL);  E0(e);
+<a href="catchup_c.slsrc.html#gtod64" target="src">00033</a>  
+<a href="catchup_c.slsrc.html#gtod64" target="src">00034</a>    return (long long)cur_tv.tv_sec * 1000000ll + (long long)cur_tv.tv_usec;
+<a href="catchup_c.slsrc.html#gtod64" target="src">00035</a>  }  /* gtod64 */
 </pre><!-- endblock gtod64_ref_1 --></small>
 
  The <tt>E0()</tt> macro checks the return
@@ -262,10 +262,10 @@ href="http://blog.geeky-boy.com/2014/04/strtoul-preferred-over-atoi.html">inadvi
       to thorough error handling, so I took a short cut:
       <a name="error_ref_1" id="error_ref_1"></a>
 <small><pre>
-<a href="catchup_c.slsrc.html#error" target="src">00012</a>  /* Simple fatal error macro */
-<a href="catchup_c.slsrc.html#error" target="src">00013</a>  #define F(m) do { fprintf(stderr, "Fatal error [%s,%d]: '%s'\n", __FILE__, __LINE__, m);  exit(1);  } while (0)
-<a href="catchup_c.slsrc.html#error" target="src">00014</a>  /* If non-zero status, fatal error with errno string */
-<a href="catchup_c.slsrc.html#error" target="src">00015</a>  #define E0(s) do { char errbuf[99];  if (s != 0) {  strerror_r(errno, errbuf, 99);  F(errbuf);  }  } while (0)
+<a href="catchup_c.slsrc.html#error" target="src">00021</a>  /* Simple fatal error macro */
+<a href="catchup_c.slsrc.html#error" target="src">00022</a>  #define F(m) do { fprintf(stderr, "Fatal error [%s,%d]: '%s'\n", __FILE__, __LINE__, m);  exit(1);  } while (0)
+<a href="catchup_c.slsrc.html#error" target="src">00023</a>  /* If non-zero status, fatal error with errno string */
+<a href="catchup_c.slsrc.html#error" target="src">00024</a>  #define E0(s) do { char errbuf[99];  if (s != 0) {  strerror_r(errno, errbuf, 99);  F(errbuf);  }  } while (0)
 </pre><!-- endblock error_ref_1 --></small>
 
  The <tt>F()</tt> macro prints a message to

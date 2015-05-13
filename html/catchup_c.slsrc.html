@@ -1,65 +1,240 @@
-<html><head><title>catchup.c</title></head>
-<html><head><title>catchup.c</title></head>
-<body><h1>catchup.c</h1>
-<p><em>Hint:</em> do not cut-and-paste from this page.  Instead, right-click on '<a href="catchup.c">catchup.c</a>' and save file.
-<small><pre>
-00001  /* catchup.c - program to demonstrate the "catchup" rate-setting algorithm.  See ??? */
-00002  
-00003  #include &lt;stdlib.h&gt;
-00004  #include &lt;unistd.h&gt;
-00005  #include &lt;string.h&gt;
-00006  #include &lt;stdio.h&gt;
-00007  #include &lt;sys/errno.h&gt;
-00008  #include &lt;sys/time.h&gt;
-00009  
-<a name="usage" id="usage"></a><a href="catchup.sldoc.html#usage_ref_1" target="doc">00010</a>  char usage[] = "Usage: catchup send_rate [sleep_usec]";
-00011  
-<a name="error" id="error"></a><a href="catchup.sldoc.html#error_ref_1" target="doc">00012</a>  /* Simple fatal error macro */
-<a href="catchup.sldoc.html#error_ref_1" target="doc">00013</a>  #define F(m) do { fprintf(stderr, "Fatal error [%s,%d]: '%s'\n", __FILE__, __LINE__, m);  exit(1);  } while (0)
-<a href="catchup.sldoc.html#error_ref_1" target="doc">00014</a>  /* If non-zero status, fatal error with errno string */
-<a href="catchup.sldoc.html#error_ref_1" target="doc">00015</a>  #define E0(s) do { char errbuf[99];  if (s != 0) {  strerror_r(errno, errbuf, 99);  F(errbuf);  }  } while (0)
-00016  
-00017  
-<a name="gtod64" id="gtod64"></a><a href="catchup.sldoc.html#gtod64_ref_1" target="doc">00018</a>  long long gtod64()
-<a href="catchup.sldoc.html#gtod64_ref_1" target="doc">00019</a>  {
-<a href="catchup.sldoc.html#gtod64_ref_1" target="doc">00020</a>    int e;  /* error handling */
-<a href="catchup.sldoc.html#gtod64_ref_1" target="doc">00021</a>    struct timeval cur_tv;
-<a href="catchup.sldoc.html#gtod64_ref_1" target="doc">00022</a>  
-<a href="catchup.sldoc.html#gtod64_ref_1" target="doc">00023</a>    e=gettimeofday(&amp;cur_tv, NULL);  E0(e);
-<a href="catchup.sldoc.html#gtod64_ref_1" target="doc">00024</a>  
-<a href="catchup.sldoc.html#gtod64_ref_1" target="doc">00025</a>    return (long long)cur_tv.tv_sec * 1000000ll + (long long)cur_tv.tv_usec;
-<a href="catchup.sldoc.html#gtod64_ref_1" target="doc">00026</a>  }  /* gtod64 */
-00027  
-00028  
-<a name="main" id="main"></a><a href="catchup.sldoc.html#main_ref_1" target="doc">00029</a>  int main(int argc, char **argv)
-<a href="catchup.sldoc.html#main_ref_1" target="doc">00030</a>  {
-<a href="catchup.sldoc.html#main_ref_1" target="doc">00031</a>    int e;  /* error handling */
-00032  
-<a name="parsing" id="parsing"></a><a href="catchup.sldoc.html#parsing_ref_1" target="doc">00033</a>    /* Command-line parsing */
-<a href="catchup.sldoc.html#parsing_ref_1" target="doc">00034</a>    if (argc == 1) { printf("%s\n", usage); exit(0); }
-<a href="catchup.sldoc.html#parsing_ref_1" target="doc">00035</a>    long send_rate = 0;  if (argc &gt;= 2) send_rate = atoi(argv[1]);
-<a href="catchup.sldoc.html#parsing_ref_1" target="doc">00036</a>    long sleep_usec = 0;  if (argc &gt;= 3) sleep_usec = atoi(argv[2]);
-00037  
-<a name="init" id="init"></a><a href="catchup.sldoc.html#init_ref_1" target="doc">00038</a>    long long start_usec = gtod64();
-<a href="catchup.sldoc.html#init_ref_1" target="doc">00039</a>    long tot_num_sent = 0;
-00040  
-<a name="loop" id="loop"></a><a href="catchup.sldoc.html#loop_ref_1" target="doc">00041</a>    for (;;) {
-<a href="catchup.sldoc.html#loop_ref_1" target="doc">00042</a>      long long usec_running = gtod64() - start_usec;
-<a href="catchup.sldoc.html#loop_ref_1" target="doc">00043</a>      long should_have_sent = (long)((usec_running * (long long)send_rate) / 1000000ll);
-00044  
-<a name="burst" id="burst"></a><a href="catchup.sldoc.html#burst_ref_1" target="doc">00045</a>      /* how far behind are we? */
-<a href="catchup.sldoc.html#burst_ref_1" target="doc">00046</a>      long burst = should_have_sent - tot_num_sent;  if (burst &gt; send_rate) F("More than 1 second behind");
-00047  
-<a name="catchup" id="catchup"></a><a href="catchup.sldoc.html#catchup_ref_1" target="doc">00048</a>      /* send a burst of messages to catch up. */
-<a href="catchup.sldoc.html#catchup_ref_1" target="doc">00049</a>      int i;
-<a href="catchup.sldoc.html#catchup_ref_1" target="doc">00050</a>      for (i = 0; i &lt; burst; i++) {
-<a href="catchup.sldoc.html#catchup_ref_1" target="doc">00051</a>        printf(".");  fflush(stdout);  /* send message */
-<a href="catchup.sldoc.html#catchup_ref_1" target="doc">00052</a>      }  /* for i */
-<a href="catchup.sldoc.html#catchup_ref_1" target="doc">00053</a>      tot_num_sent += burst;
-00054  
-<a name="sleep" id="sleep"></a><a href="catchup.sldoc.html#sleep_ref_1" target="doc">00055</a>      if (sleep_usec &gt; 0) {
-<a href="catchup.sldoc.html#sleep_ref_1" target="doc">00056</a>        e=usleep(sleep_usec);  E0(e);
-<a href="catchup.sldoc.html#sleep_ref_1" target="doc">00057</a>      }
-<a href="catchup.sldoc.html#sleep_ref_1" target="doc">00058</a>    }  /* for ;; */
-00059  }  /* main */
+<!DOCTYPE html><html><head><title>catchup_c.txt</title>
+<link rel="stylesheet" href="//code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css">
+<script src="//code.jquery.com/jquery-1.10.2.js"></script>
+<script src="//code.jquery.com/ui/1.11.4/jquery-ui.js"></script>
+<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/8.5/styles/default.min.css">
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/8.5/highlight.min.js"></script>
+<script>
+  $(function() {
+    $( document ).tooltip();
+  });
+</script>
+<style>
+#code {background-color:#ffffff;};
+</style>
+</head>
+<body><h1>catchup_c.txt</h1>
+<script>hljs.initHighlightingOnLoad();</script>
+<small><pre><code id="code"><table border=0 cellpadding=0 cellspacing=0><tr>
+<td>00001
+00002
+00003
+00004
+00005
+00006
+00007
+00008
+00009
+00010
+00011
+00012
+00013
+00014
+00015
+00016
+00017
+00018
+<a href="catchup.sldoc.html#usage_ref_1" target="doc">00019</a>
+00020
+<a href="catchup.sldoc.html#error_ref_1" target="doc">00021</a>
+<a href="catchup.sldoc.html#error_ref_1" target="doc">00022</a>
+<a href="catchup.sldoc.html#error_ref_1" target="doc">00023</a>
+<a href="catchup.sldoc.html#error_ref_1" target="doc">00024</a>
+00025
+00026
+<a href="catchup.sldoc.html#gtod64_ref_1" target="doc">00027</a>
+<a href="catchup.sldoc.html#gtod64_ref_1" target="doc">00028</a>
+<a href="catchup.sldoc.html#gtod64_ref_1" target="doc">00029</a>
+<a href="catchup.sldoc.html#gtod64_ref_1" target="doc">00030</a>
+<a href="catchup.sldoc.html#gtod64_ref_1" target="doc">00031</a>
+<a href="catchup.sldoc.html#gtod64_ref_1" target="doc">00032</a>
+<a href="catchup.sldoc.html#gtod64_ref_1" target="doc">00033</a>
+<a href="catchup.sldoc.html#gtod64_ref_1" target="doc">00034</a>
+<a href="catchup.sldoc.html#gtod64_ref_1" target="doc">00035</a>
+00036
+00037
+<a href="catchup.sldoc.html#main_ref_1" target="doc">00038</a>
+<a href="catchup.sldoc.html#main_ref_1" target="doc">00039</a>
+<a href="catchup.sldoc.html#main_ref_1" target="doc">00040</a>
+00041
+<a href="catchup.sldoc.html#parsing_ref_1" target="doc">00042</a>
+<a href="catchup.sldoc.html#parsing_ref_1" target="doc">00043</a>
+<a href="catchup.sldoc.html#parsing_ref_1" target="doc">00044</a>
+<a href="catchup.sldoc.html#parsing_ref_1" target="doc">00045</a>
+00046
+<a href="catchup.sldoc.html#init_ref_1" target="doc">00047</a>
+<a href="catchup.sldoc.html#init_ref_1" target="doc">00048</a>
+00049
+<a href="catchup.sldoc.html#loop_ref_1" target="doc">00050</a>
+<a href="catchup.sldoc.html#loop_ref_1" target="doc">00051</a>
+<a href="catchup.sldoc.html#loop_ref_1" target="doc">00052</a>
+00053
+<a href="catchup.sldoc.html#burst_ref_1" target="doc">00054</a>
+<a href="catchup.sldoc.html#burst_ref_1" target="doc">00055</a>
+00056
+<a href="catchup.sldoc.html#catchup_ref_1" target="doc">00057</a>
+<a href="catchup.sldoc.html#catchup_ref_1" target="doc">00058</a>
+<a href="catchup.sldoc.html#catchup_ref_1" target="doc">00059</a>
+<a href="catchup.sldoc.html#catchup_ref_1" target="doc">00060</a>
+<a href="catchup.sldoc.html#catchup_ref_1" target="doc">00061</a>
+<a href="catchup.sldoc.html#catchup_ref_1" target="doc">00062</a>
+00063
+<a href="catchup.sldoc.html#sleep_ref_1" target="doc">00064</a>
+<a href="catchup.sldoc.html#sleep_ref_1" target="doc">00065</a>
+<a href="catchup.sldoc.html#sleep_ref_1" target="doc">00066</a>
+<a href="catchup.sldoc.html#sleep_ref_1" target="doc">00067</a>
+00068
+</td><td>  /* catchup.c - program to demonstrate the "catchup" rate-setting algorithm.  See ??? */
+  /*
+  # This code and its documentation is Copyright 2015 Steven Ford, http://geeky-boy.com
+  # and licensed "public domain" style under Creative Commons "CC0": http://creativecommons.org/publicdomain/zero/1.0/
+  # To the extent possible under law, the contributors to this project have
+  # waived all copyright and related or neighboring rights to this work.
+  # In other words, you can use this code for any purpose without any
+  # restrictions.  This work is published from: United States.  The project home
+  # is https://github.com/fordsfords/catchup/tree/gh-pages
+  */
+  
+  #include &lt;stdlib.h&gt;
+  #include &lt;unistd.h&gt;
+  #include &lt;string.h&gt;
+  #include &lt;stdio.h&gt;
+  #include &lt;sys/errno.h&gt;
+  #include &lt;sys/time.h&gt;
+  
+<span name="usage" id="usage"></span>  char usage[] = "Usage: catchup send_rate [sleep_usec]";
+  
+<span name="error" id="error"></span>  /* Simple fatal error macro */
+  #define F(m) do { fprintf(stderr, "Fatal error [%s,%d]: '%s'\n", __FILE__, __LINE__, m);  exit(1);  } while (0)
+  /* If non-zero status, fatal error with errno string */
+  #define E0(s) do { char errbuf[99];  if (s != 0) {  strerror_r(errno, errbuf, 99);  F(errbuf);  }  } while (0)
+  
+  
+<span name="gtod64" id="gtod64"></span>  long long gtod64()
+  {
+    int e;  /* error handling */
+    struct timeval cur_tv;
+  
+    e=gettimeofday(&amp;cur_tv, NULL);  E0(e);
+  
+    return (long long)cur_tv.tv_sec * 1000000ll + (long long)cur_tv.tv_usec;
+  }  /* gtod64 */
+  
+  
+<span name="main" id="main"></span>  int main(int argc, char **argv)
+  {
+    int e;  /* error handling */
+  
+<span name="parsing" id="parsing"></span>    /* Command-line parsing */
+    if (argc == 1) { printf("%s\n", usage); exit(0); }
+    long send_rate = 0;  if (argc &gt;= 2) send_rate = atoi(argv[1]);
+    long sleep_usec = 0;  if (argc &gt;= 3) sleep_usec = atoi(argv[2]);
+  
+<span name="init" id="init"></span>    long long start_usec = gtod64();
+    long tot_num_sent = 0;
+  
+<span name="loop" id="loop"></span>    for (;;) {
+      long long usec_running = gtod64() - start_usec;
+      long should_have_sent = (long)((usec_running * (long long)send_rate) / 1000000ll);
+  
+<span name="burst" id="burst"></span>      /* how far behind are we? */
+      long burst = should_have_sent - tot_num_sent;  if (burst &gt; send_rate) F("More than 1 second behind");
+  
+<span name="catchup" id="catchup"></span>      /* send a burst of messages to catch up. */
+      int i;
+      for (i = 0; i &lt; burst; i++) {
+        printf(".");  fflush(stdout);  /* send message */
+      }  /* for i */
+      tot_num_sent += burst;
+  
+<span name="sleep" id="sleep"></span>      if (sleep_usec &gt; 0) {
+        e=usleep(sleep_usec);  E0(e);
+      }
+    }  /* for ;; */
+  }  /* main */
+</td></tr></table></code>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 </pre></small></body></html>

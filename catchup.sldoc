@@ -87,7 +87,7 @@
     <p>There is one program source file:<br>
     </p>
     <ul>
-      <li><b><span style="font-family: monospace;">=semlit,srcfile,catchup_c.slsrc,catchup.c=</span></b>
+      <li><b><span style="font-family: monospace;">=semlit,srcfile,catchup_c.slsrc,catchup_c.txt=</span></b>
         - (right-click and save) main program.</li>
     </ul>
     <p> </p>
